@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ramoncl001/comet/ioc"
+	"github.com/ramoncl001/go-comet/ioc"
 )
 
 var errInvalidToken = errors.New("invalid token")

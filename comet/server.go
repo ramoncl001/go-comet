@@ -9,8 +9,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/ramoncl001/comet/ioc"
-	"github.com/ramoncl001/comet/rest"
+	"github.com/ramoncl001/go-comet/ioc"
+	"github.com/ramoncl001/go-comet/rest"
 	"gorm.io/gorm"
 )
 

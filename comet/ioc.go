@@ -3,7 +3,7 @@ package comet
 import (
 	"context"
 
-	"github.com/ramoncl001/comet/ioc"
+	"github.com/ramoncl001/go-comet/ioc"
 )
 
 // RegisterTransient registers a transient dependency in the IoC container.

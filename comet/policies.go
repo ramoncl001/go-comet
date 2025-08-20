@@ -1,7 +1,7 @@
 package comet
 
 import (
-	"github.com/ramoncl001/comet/ioc"
+	"github.com/ramoncl001/go-comet/ioc"
 )
 
 var RequireRole = func(next RequestHandler, value interface{}) RequestHandler {

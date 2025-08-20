@@ -1,4 +1,4 @@
-module github.com/ramoncl001/comet
+module github.com/ramoncl001/go-comet
 
 go 1.24.6
 

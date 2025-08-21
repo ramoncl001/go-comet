@@ -368,7 +368,7 @@ func isRequestMethod(method reflect.Method) bool {
 		return false
 	}
 
-	return reqType.Name() == "Request" && strings.Contains(reqType.PkgPath(), "github.com/ramoncl001/comet")
+	return reqType.Name() == "Request" && strings.Contains(reqType.PkgPath(), "github.com/ramoncl001/go-comet/comet")
 }
 
 func getMethodPath(basePath, methodName string) string {

@@ -14,9 +14,9 @@ var (
 type serviceType int
 
 const (
-	Transient serviceType = iota
-	Singleton
-	Scoped
+	transient serviceType = iota
+	singleton
+	scoped
 )
 
 type service struct {
@@ -34,6 +34,34 @@ func newService[T any](value T, t serviceType) service {
 var transientServices = make(map[reflect.Type]map[interface{}]service)
 var singletonServices = make(map[reflect.Type]map[interface{}]service)
 var scopedServices = make(map[reflect.Type]map[interface{}]service)
+
+func Resolve[T any](ctx context.Context) (T, error) {
+	tp := reflect.TypeOf((*T)(nil)).Elem()
+	result, err := resolve(ctx, tp)
+	if err != nil {
+		return *new(T), err
+	}
+
+	if result == nil {
+		return *new(T), errDependencyNotFound
+	}
+
+	return result.(T), nil
+}
+
+func ResolveKeyed[T any](ctx context.Context, key interface{}) (T, error) {
+	tp := reflect.TypeOf((*T)(nil)).Elem()
+	result, err := resolveKeyed(ctx, tp, key)
+	if err != nil {
+		return *new(T), err
+	}
+
+	if result == nil {
+		return *new(T), errDependencyNotFound
+	}
+
+	return result.(T), nil
+}
 
 func resolve(ctx context.Context, t reflect.Type) (interface{}, error) {
 	if _, ok := singletonServices[t][0]; ok {

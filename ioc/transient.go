@@ -14,7 +14,7 @@ func RegisterTransient[T any](provider interface{}) {
 	if _, ok := transientServices[tp]; !ok {
 		transientServices[tp] = make(map[interface{}]service)
 	}
-	transientServices[tp][0] = newService(provider, Transient)
+	transientServices[tp][0] = newService(provider, transient)
 }
 
 func RegisterKeyedTransient[T any](provider interface{}, key interface{}) {
@@ -26,35 +26,7 @@ func RegisterKeyedTransient[T any](provider interface{}, key interface{}) {
 	if _, ok := transientServices[tp]; !ok {
 		transientServices[tp] = make(map[interface{}]service)
 	}
-	transientServices[tp][key] = newService(provider, Transient)
-}
-
-func ResolveTransient[T any](ctx context.Context) (T, error) {
-	tp := reflect.TypeOf((*T)(nil)).Elem()
-	result, err := resolve(ctx, tp)
-	if err != nil {
-		return *new(T), err
-	}
-
-	if result == nil {
-		return *new(T), errDependencyNotFound
-	}
-
-	return result.(T), nil
-}
-
-func ResolveKeyedTransient[T any](ctx context.Context, key interface{}) (T, error) {
-	tp := reflect.TypeOf((*T)(nil)).Elem()
-	result, err := resolveKeyed(ctx, tp, key)
-	if err != nil {
-		return *new(T), err
-	}
-
-	if result == nil {
-		return *new(T), errDependencyNotFound
-	}
-
-	return result.(T), nil
+	transientServices[tp][key] = newService(provider, transient)
 }
 
 func resolveTransient(ctx context.Context, t reflect.Type, key interface{}) (interface{}, error) {

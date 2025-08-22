@@ -6,10 +6,18 @@
 * [Requirements](#requirements)
 * [Quickstart](#quickstart)
 * [Installation](#installation)
+* [Router](#router)
+    - [Definition](#router-definition)
+    - [Usage](#router-usage)
+* [Groups](#groups)
+    - [Definition](#groups-definition)
+    - [Usage](#groups-usage)
 * [Controllers](#controllers)
     - [Defining routes](#defining-routes)
     - [Defining path parameters](#defining-path-parameters)
     - [Mapping](#mapping)
+* [Middlewares](#middlewares)
+    - [Basic Examples](#basic-examples)
 * [Dependency injection](#dependency-injection)
 
 ## Requirements
@@ -17,6 +25,8 @@
 `go: v1.18+`
 
 ## Quickstart
+
+### Comet-CLI
 
 In order to create a new `comet` project we first need to install `comet-cli` with the following command:
 
@@ -61,18 +71,74 @@ You should get a result like this:
 ```bash
 Running server in :8080...
 Routes:
-[FooController]
 ```
 
-## Installation
+## Manual Installation
 
 To install comet in your project you can run:
 ```bash
 go get -u github.com/ramoncl001/go-comet/comet@latest
 ```
 
+## Router
+Comet router is the core entity wich will manage all application endpoints and middlewares
+
+### Router Definition
+In order to create a new Comet Router we can use two ways. The default, wich works in `localhost:5051` and a custom version:
+
+```go
+// Default router
+router := comet.NewDefaultRouter()
+
+// Custom one
+router := &comet.Router{
+    Address: ":8080"
+}
+```
+
+### Router Usage
+The router is used to map application handlers and start the api server, let's see a basic example:
+
+```go
+router := comet.NewDefaultRouter()
+
+router.MapGet("", func(r *comet.Request) comet.Response {
+    return comet.Ok("Hello world")
+})
+
+if err := router.Run(); err != nil {
+    panic(err)
+}
+```
+
+In this basic example we have created a simple Hello World web application, wich handles a GET request at `http://localhost:5051/` and it returns `"Hello world"`
+
+## Groups
+In comet we can create groups to store a bunch of handler under a single base route
+
+### Groups Definition
+```go
+group := comet.Group("/person")
+```
+
+### Groups usage
+Groups can map many handlers and then they can be mapped into the router
+```go
+router := comet.NewDefaultRouter()
+
+personGroup := comet.Group("/person")
+
+personGroup.MapGet("", func(r *comet.Request) comet.Response {
+    return comet.Ok("Here's the person")
+})
+
+router.MapGroup(personGroup)
+
+_ = router.Run()
+```
+
 ## Controllers
-Comet is Controller-Based framework
+Comet can be used as a Controller-Based framework
 
 To create a controller you can do it manually or using the cli typing the following command:
 
@@ -157,20 +223,90 @@ func (PersonController) DeleteByID(r *comet.Request) comet.Response (
 )
 ```
 
-## Mapping
+### Mapping
 
 Once the controller is created it can be mapped in the app just like this:
 
 ```go
-app := comet.NewServer()
+router := comet.NewDefaulRouter()
 
-app.MapController(controllers.NewPersonController)
+controller := NewPersonController()
+router.MapController(controller)
 
-app.Run(":8080")
+_ := router.Run()
+```
+
+## Middlewares
+Comet have a custom definition for middlewares
+```go
+type Middleware = func(next comet.RequestHandler) comet.RequestHandler
+```
+
+This middlewares are executed before or after the execution of one or more handlers in the application
+
+### Basic Examples
+
+In order to build a simple middleware to print a request's content we can do it like this:
+```go
+var logMiddleware = func(next comet.RequestHandler) comet.RequestHandler {
+    return func(r *comet.Request) comet.Response {
+        fmt.Printf("Request: %v", r)
+        return next(r)
+    }
+}
+
+router := comet.NewDefaultRouter()
+
+router.Use(logMiddleware)
+
+router.MapGet("", func(r *comet.Request) comet.Response {
+    return comet.NoContent()
+})
+
+_ = router.Run()
+```
+
+You can also add a middleware to a single group of handlers
+
+```go
+var logMiddleware = func(next comet.RequestHandler) comet.RequestHandler {
+    return func(r *comet.Request) comet.Response {
+        fmt.Printf("Request: %v", r)
+        return next(r)
+    }
+}
+
+group := comet.Group("v1/foo")
+group.Use(logMiddleware)
+```
+
+Or in a simple way you can just add it to a single handler
+
+```go
+
+var logMiddleware = func(next comet.RequestHandler) comet.RequestHandler {
+    return func(r *comet.Request) comet.Response {
+        fmt.Printf("Request: %v", r)
+        return next(r)
+    }
+}
+
+var requestHandler = func(r *comet.Request) comet.Response {
+    return comet.NoContent()
+}
+
+router.MapGet("", requestHandler, logMiddleware)
 ```
 
 ## Dependency injection
 Like other frameworks and libraries like ASP.NET or Spring, Comet also have dependency injection support. In order to register some service or dependency we will have two choices, we can use regular registration or keyed registration, wich give us the posibility of register many instances of a service under a single interface without overwrite the already registered service. Here are some examples of Dependency Injection in Comet:
+
+### Installing
+Dependency injection is not built-in comet basic functionalities, you have to add it manually by installing it:
+
+```bash
+go get -u github.com/ramoncl001/go-comet/ioc@latest
+```
 
 ### Scoped
 
@@ -185,13 +321,6 @@ func RegisterScoped[T any](provider interface{})
 
 `provider`: Constructor function for the dependency instance
 
-```go
-func ResolveScoped[T any](ctx context.Context) (T, error)
-```
-
-`T`: Type of the dependency interface
-
-`ctx`: Current context
 
 ```go
 type ServiceA interface {}
@@ -208,13 +337,6 @@ func NewServiceA() ServiceA {
 
 // Registering the dependency
 comet.RegisterScoped[ServiceA](NewServiceA)
-
-// Resolving the dependency
-ctx := context.Background()
-service, err := comet.ResolveScoped[ServiceA](ctx)
-if err != nil {
-    panic("error resolving dependency")
-}
 ```
 
 ### Keyed Scoped
@@ -229,16 +351,6 @@ func RegisterKeyedScoped[T any](provider interface{}, key interface{})
 `T`: Type of the dependency interface
 
 `provider`: Constructor function for the dependency instance
-
-`key`: Key for dependency mapping
-
-```go
-func ResolveKeyedScoped[T any](ctx context.Context, key interface{}) (T, error)
-```
-
-`T`: Type of the dependency interface
-
-`ctx`: Current context
 
 `key`: Key for dependency mapping
 
@@ -267,19 +379,6 @@ func NewSecondServiceA ServiceA {
 comet.RegisterKeyedScoped[ServiceA](NewServiceA, 1)
 
 comet.RegisterKeyedScoped[ServiceA](NewSecondServiceA, 2)
-
-// Resolving the dependencies
-ctx := context.Background()
-
-service, err := comet.ResolveKeyedScoped[ServiceA](ctx, 1)
-if err != nil {
-    panic("error resolving dependency")
-}
-
-secondService, err := comet.ResolveKeyedScoped[ServiceA](ctx, 2)
-if err != nil {
-    panic("error resolving dependency")
-}
 ```
 
 ### Transient
@@ -296,14 +395,6 @@ func RegisterTransient[T any](provider interface{})
 `provider`: Constructor function for the dependency instance
 
 ```go
-func ResolveTransient[T any](ctx context.Context) (T, error)
-```
-
-`T`: Type of the dependency interface
-
-`ctx`: Current context
-
-```go
 type ServiceA interface {}
 
 type serviceA struct {
@@ -318,13 +409,6 @@ func NewServiceA() ServiceA {
 
 // Registering the dependency
 comet.RegisterTransient[ServiceA](NewServiceA)
-
-// Resolving the dependency
-ctx := context.Background()
-service, err := comet.ResolveTransient[ServiceA](ctx)
-if err != nil {
-    panic("error resolving dependency")
-}
 ```
 
 
@@ -340,16 +424,6 @@ func RegisterKeyedTransient[T any](provider interface{}, key interface{})
 `T`: Type of the dependency interface
 
 `provider`: Constructor function for the dependency instance
-
-`key`: Key for dependency mapping
-
-```go
-func ResolveKeyedTransient[T any](ctx context.Context, key interface{}) (T, error)
-```
-
-`T`: Type of the dependency interface
-
-`ctx`: Current context
 
 `key`: Key for dependency mapping
 
@@ -378,19 +452,6 @@ func NewSecondServiceA ServiceA {
 comet.RegisterKeyedTransient[ServiceA](NewServiceA, 1)
 
 comet.RegisterKeyedTransient[ServiceA](NewSecondServiceA, 2)
-
-// Resolving the dependencies
-ctx := context.Background()
-
-service, err := comet.ResolveKeyedTransient[ServiceA](ctx, 1)
-if err != nil {
-    panic("error resolving dependency")
-}
-
-secondService, err := comet.ResolveKeyedTransient[ServiceA](ctx, 2)
-if err != nil {
-    panic("error resolving dependency")
-}
 ```
 
 ### Singleton
@@ -406,14 +467,6 @@ func RegisterSingleton[T any](instance T)
 `instance`: An instance of the dependency (It will live until the application is closed)
 
 ```go
-func ResolveSingleton[T any](ctx context.Context) (T, error)
-```
-
-`T`: Literal type of the dependency
-
-`ctx`: Current context
-
-```go
 type ServiceA struct {
     Count int
 }
@@ -421,19 +474,10 @@ type ServiceA struct {
 func (s *ServiceA) RaiseCount() int {
     return s.Count++
 }
-
 ...
 
 // Register dependency
 comet.RegisterSingleton(&ServiceA{Count: 0})
-
-// Retrieve dependency
-ctx := context.Background()
-service, err := comet.ResolveSingleton[*ServiceA](ctx)
-
-
-// Count property will keep increasing until app shutdown
-fmt.Print(service.RaiseCount())
 ```
 
 ### Keyed Singleton
@@ -447,16 +491,6 @@ func RegisterKeyedSingleton[T any](instance T, key interface{})
 `T`: The literal type of the dependency
 
 `instance`: An instance of the dependency (It will live until the application is closed)
-
-`key`: Key for dependency mapping
-
-```go
-func ResolveKeyedSingleton[T any](ctx context.Context, key interface{}) (T, error)
-```
-
-`T`: Literal type of the dependency
-
-`ctx`: Current context
 
 `key`: Key for dependency mapping
 
@@ -489,14 +523,30 @@ func (s *ServiceB) RaiseCount() int {
 // Register dependency
 comet.RegisterKeyedSingleton[CountService](&ServiceA{Count: 0}, 'A')
 comet.RegisterKeyedSingleton[CountService](&ServiceB{Count: 0}, 'B')
+```
 
-// Retrieve dependency
-ctx := context.Background()
-countA, err := comet.ResolveKeyedSingleton[CountService](ctx, 'A')
+### Resolve
+After registering a service in the IoC container you can resolve it using the current context
 
-countB, err := comet.ResolveKeyedSingleton[CountService](ctx, 'B')
+```go
+serviceA, err := ioc.Resolve[ServiceA](context.Background())
+```
 
-// Each count will increase by its own
-fmt.Print(serviceA.RaiseCount())
-fmt.Print(serviceB.RaiseCount())
+Even if you can use the background context it is recommended to use the request context, for example
+
+```go
+var handler = func(r *comet.Request) comet.Request {
+    serviceA, err := ioc.Resolve[ServiceA](r.Context())
+    result := serviceA.DoStuff()
+    return comet.Ok(result)
+}
+```
+
+### Resolve Keyed
+Just like the regular `Resolve`, `KeyedResolve` returns an instance of a registered service, but this method allows to search this dependency by using a `key` previously defined in te registration.
+
+```go
+serviceA, err := ioc.ResolveKeyed[ServiceBase](context.Background(), 'A')
+
+serviceB, err := ioc.ResolveKeyed[ServiceBase](context.Background(), 'B')
 ```

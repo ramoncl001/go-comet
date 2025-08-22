@@ -14,7 +14,7 @@ func RegisterScoped[T any](provider interface{}) {
 	if _, ok := scopedServices[tp]; !ok {
 		scopedServices[tp] = make(map[interface{}]service)
 	}
-	scopedServices[tp][0] = newService(provider, Scoped)
+	scopedServices[tp][0] = newService(provider, scoped)
 }
 
 func RegisterKeyedScoped[T any](provider interface{}, key interface{}) {
@@ -26,35 +26,7 @@ func RegisterKeyedScoped[T any](provider interface{}, key interface{}) {
 	if _, ok := scopedServices[tp]; !ok {
 		scopedServices[tp] = make(map[interface{}]service)
 	}
-	scopedServices[tp][key] = newService(provider, Scoped)
-}
-
-func ResolveScoped[T any](ctx context.Context) (T, error) {
-	tp := reflect.TypeOf((*T)(nil)).Elem()
-	result, err := resolve(ctx, tp)
-	if err != nil {
-		return *new(T), err
-	}
-
-	if result == nil {
-		return *new(T), errDependencyNotFound
-	}
-
-	return result.(T), nil
-}
-
-func ResolveKeyedScoped[T any](ctx context.Context, key interface{}) (T, error) {
-	tp := reflect.TypeOf((*T)(nil)).Elem()
-	result, err := resolveKeyed(ctx, tp, key)
-	if err != nil {
-		return *new(T), err
-	}
-
-	if result == nil {
-		return *new(T), errDependencyNotFound
-	}
-
-	return result.(T), nil
+	scopedServices[tp][key] = newService(provider, scoped)
 }
 
 func resolveScoped(ctx context.Context, t reflect.Type, key interface{}) (interface{}, error) {

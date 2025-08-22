@@ -56,6 +56,13 @@ func Ok[T any](data T) Response {
 	}
 }
 
+func Created[T any](data T) Response {
+	return Response{
+		Status: 201,
+		Data:   data,
+	}
+}
+
 func Error[T any](data T) Response {
 	return Response{
 		Status: 500,

@@ -1,25 +1,21 @@
 package comet
 
-import (
-	"github.com/ramoncl001/go-comet/ioc"
-)
+// PoliciesConfig is a map with all controller policies
+// configuration, such as Role, Permission or custom policies
+type PoliciesConfig map[string][]Policy
 
-var RequireRole = func(next RequestHandler, value interface{}) RequestHandler {
-	return func(req *Request) Response {
-		sessionManager, err := ioc.ResolveSingleton[SessionManager](req.Context())
-		if err != nil {
-			return Error("could not resolve session manager")
-		}
+type Policy struct {
+	Validation AuthorizerFunction
+	Value      interface{}
+}
 
-		claims, err := sessionManager.Validate(req)
-		if err != nil {
-			return Unauthorized()
-		}
-
-		if claims["role"] != value {
-			return Unauthorized()
-		}
-
-		return next(req)
+func Authorize(fn AuthorizerFunction, val interface{}) Policy {
+	return Policy{
+		Validation: fn,
+		Value:      val,
 	}
 }
+
+type AuthorizerFunction = func(RequestHandler, interface{}) RequestHandler
+
+type AuthorizationMap map[interface{}]AuthorizerFunction

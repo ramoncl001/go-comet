@@ -1,13 +1,9 @@
-package comet
+package logs
 
 import (
 	"context"
 	"log/slog"
 	"os"
-)
-
-const (
-	TRACE_ID string = "traceID"
 )
 
 type Logger interface {
@@ -32,25 +28,17 @@ func FromContext(ctx context.Context) Logger {
 }
 
 func (log *slogLogger) Debug(message string, args ...interface{}) {
-	traceID := log.ctx.Value(TRACE_ID)
-	args = append(args, "trace_id", traceID)
 	log.logger.Log(log.ctx, slog.LevelDebug.Level(), message, args...)
 }
 
 func (log *slogLogger) Error(message string, args ...interface{}) {
-	traceID := log.ctx.Value(TRACE_ID)
-	args = append(args, "trace_id", traceID)
 	log.logger.Log(log.ctx, slog.LevelError.Level(), message, args...)
 }
 
 func (log *slogLogger) Info(message string, args ...interface{}) {
-	traceID := log.ctx.Value(TRACE_ID)
-	args = append(args, "trace_id", traceID)
 	log.logger.Log(log.ctx, slog.LevelInfo.Level(), message, args...)
 }
 
 func (log *slogLogger) Warn(message string, args ...interface{}) {
-	traceID := log.ctx.Value(TRACE_ID)
-	args = append(args, "trace_id", traceID)
 	log.logger.Log(log.ctx, slog.LevelWarn.Level(), message, args...)
 }

@@ -1,7 +1,6 @@
 package ioc
 
 import (
-	"context"
 	"reflect"
 )
 
@@ -15,7 +14,7 @@ func RegisterSingleton[T any](instance T) {
 		singletonServices[tp] = make(map[interface{}]service)
 	}
 
-	singletonServices[tp][0] = newService(instance, Singleton)
+	singletonServices[tp][0] = newService(instance, singleton)
 }
 
 func RegisterKeyedSingleton[T any](instance T, key interface{}) {
@@ -28,35 +27,7 @@ func RegisterKeyedSingleton[T any](instance T, key interface{}) {
 		singletonServices[tp] = make(map[interface{}]service)
 	}
 
-	singletonServices[tp][key] = newService(instance, Singleton)
-}
-
-func ResolveSingleton[T any](ctx context.Context) (T, error) {
-	tp := reflect.TypeOf((*T)(nil)).Elem()
-	result, err := resolve(ctx, tp)
-	if err != nil {
-		return *new(T), err
-	}
-
-	if result == nil {
-		return *new(T), errDependencyNotFound
-	}
-
-	return result.(T), nil
-}
-
-func ResolveKeyedSingleton[T any](ctx context.Context, key interface{}) (T, error) {
-	tp := reflect.TypeOf((*T)(nil)).Elem()
-	result, err := resolveKeyed(ctx, tp, key)
-	if err != nil {
-		return *new(T), err
-	}
-
-	if result == nil {
-		return *new(T), errDependencyNotFound
-	}
-
-	return result.(T), nil
+	singletonServices[tp][key] = newService(instance, singleton)
 }
 
 func resolveSingleton(t reflect.Type, key interface{}) (interface{}, error) {
